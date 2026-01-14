@@ -15,7 +15,7 @@ env.bak/
 venv.bak/
 
 # UV lock file
-uv.lock
+# uv.lock
 
 # IDE files
 .idea/
