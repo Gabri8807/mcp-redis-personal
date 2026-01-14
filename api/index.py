@@ -23,7 +23,26 @@ app = FastAPI()
 
 @app.get("/")
 async def root():
-    return {"message": "Redis MCP Server is running. Use an MCP client to connect via SSE if supported."}
+    # Try to check Redis connection status
+    redis_status = "Not configured"
+    redis_url = os.environ.get("REDIS_URL") or os.environ.get("KV_URL")
+    
+    if redis_url:
+        try:
+            from redis import Redis
+            r = Redis.from_url(redis_url, socket_timeout=2)
+            if r.ping():
+                redis_status = "Connected ✅"
+            else:
+                redis_status = "Failed to Ping ❌"
+        except Exception as e:
+            redis_status = f"Error: {str(e)} ❌"
+    
+    return {
+        "status": "Redis MCP Server is running 🚀",
+        "redis_connection": redis_status,
+        "instructions": "Use an MCP client to connect via SSE if supported, or uses stdio locally."
+    }
 
 @app.get("/sse")
 async def handle_sse(request: Request):
@@ -33,4 +52,8 @@ async def handle_sse(request: Request):
 
 # Attempt to mount if possible (optimistic)
 if hasattr(mcp, '_fastapi_app'):
+    # If using native FastMCP, we wrapp it but keep our root for diagnostics if needed, 
+    # or let FastMCP take over. 
+    # For now, let's keep our diagnostic root on a subpath if needed, or just use the app.
+    # Note: FastMCP usually mounts on /sse by default or root.
     app = mcp._fastapi_app
